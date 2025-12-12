@@ -2,15 +2,15 @@
 import { useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 
 const Register = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    photo: null,
-  });
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [photo, setPhoto] = useState(null);
   const [loading, setLoading] = useState(false);
+
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -18,12 +18,14 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await register(formData.name, formData.email, formData.password, formData.photo);
-      navigate("/dashboard");
+      await register(name, email, password, photo);
+      toast.success("Account created!");
+      navigate("/dashboard"); // এখানে নিয়ে যাবে
     } catch (err) {
-      toast.error("Registration failed");
+      toast.error("Failed to create account");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -31,23 +33,53 @@ const Register = () => {
       <div className="card w-96 bg-base-100 shadow-xl">
         <div className="card-body">
           <h2 className="card-title justify-center text-2xl mb-4">Register</h2>
-          <form onSubmit={handleSubmit}>
-            <input type="text" placeholder="Full Name" className="input input-bordered w-full mb-3"
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
-            <input type="email" placeholder="Email" className="input input-bordered w-full mb-3"
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
-            <input type="password" placeholder="Password" className="input input-bordered w-full mb-3"
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
-            <input type="file" accept="image/*" className="file-input file-input-bordered w-full mb-4"
-              onChange={(e) => setFormData({ ...formData, photo: e.target.files[0] })} />
 
-            <button type="submit" className={`btn btn-success w-full ${loading ? "loading" : ""}`}>
-              Register
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input input-bordered w-full mb-3"
+              required
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input input-bordered w-full mb-3"
+              required
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input input-bordered w-full mb-3"
+              required
+            />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setPhoto(e.target.files[0])}
+              className="file-input file-input-bordered w-full mb-4"
+            />
+
+            <button
+              type="submit"
+              disabled={loading}
+              className={`btn btn-success w-full ${loading ? "loading" : ""}`}
+            >
+              {loading ? "Creating Account..." : "Register"}
             </button>
           </form>
 
-          <p className="text-center mt-4">
-            Already have an account? <Link to="/login" className="link link-primary">Login</Link>
+          <p className="text-center mt-4 text-sm">
+            Already have an account?{" "}
+            <Link to="/login" className="link link-primary font-medium">
+              Login here
+            </Link>
           </p>
         </div>
       </div>

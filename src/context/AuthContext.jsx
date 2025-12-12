@@ -24,55 +24,81 @@ export const AuthProvider = ({ children }) => {
   const syncWithBackend = async (firebaseUser) => {
     if (!firebaseUser) {
       setCurrentUser(null);
+      setLoading(false);
       return;
     }
+
     try {
       const idToken = await firebaseUser.getIdToken();
       const res = await api.post("/auth/firebase", { idToken });
       setCurrentUser(res.data.user);
     } catch (err) {
-      console.error("Sync failed:", err);
+      console.error("Backend sync failed:", err);
       setCurrentUser(null);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Register
+  const register = async (name, email, password, photo = null) => {
+    const res = await createUserWithEmailAndPassword(auth, email, password);
+    const firebaseUser = res.user;
+
+    const idToken = await firebaseUser.getIdToken();
+    const formData = new FormData();
+    formData.append("idToken", idToken);
+    if (name) formData.append("name", name);
+    if (photo) formData.append("photo", photo);
+
+    const backendRes = await api.post("/auth/firebase", formData);
+    setCurrentUser(backendRes.data.user);
+    toast.success("Registration successful!");
+  };
+
+  // Login
   const login = async (email, password) => {
     const res = await signInWithEmailAndPassword(auth, email, password);
     await syncWithBackend(res.user);
+    toast.success("Login successful!");
   };
 
-  const register = async (email, password) => {
-    const res = await createUserWithEmailAndPassword(auth, email, password);
-    await syncWithBackend(res.user);
-  };
-
+  // Google Login
   const googleLogin = async () => {
     const provider = new GoogleAuthProvider();
     const res = await signInWithPopup(auth, provider);
     await syncWithBackend(res.user);
+    toast.success("Google login successful!");
   };
 
+  // Logout
   const logout = async () => {
     await signOut(auth);
     await api.post("/auth/logout");
     setCurrentUser(null);
+    toast.success("Logged out");
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        syncWithBackend(user);
-      } else {
-        setCurrentUser(null);
-      }
-      setLoading(false);
+      syncWithBackend(user);
     });
     return unsubscribe;
   }, []);
 
+  const value = {
+    currentUser,
+    currentUser,
+    loading,
+    login,
+    register,
+    googleLogin,
+    logout,
+  };
+
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, register, googleLogin, logout }}>
-      {!loading && children}
+    <AuthContext.Provider value={value}>
+      {!loading ? children : <div className="flex justify-center items-center min-h-screen"><span className="loading loading-spinner loading-lg"></span></div>}
     </AuthContext.Provider>
   );
 };
